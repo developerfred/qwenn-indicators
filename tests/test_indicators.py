@@ -15,7 +15,7 @@ def test_rsi_basic():
     rsi_valor_baixo = rsi(precos_queda, period=14)
     assert rsi_valor_baixo < 50, f"RSI em tendência de baixa deveria ser < 50, got {rsi_valor_baixo}"
 
-    # Preços laterais -> RSI perto de 50
+    # Preços laterais (sem variação) -> RSI = 50 (neutro)
     precos_laterais = [55] * 20
     rsi_lateral = rsi(precos_laterais, period=14)
     assert rsi_lateral == 50, f"RSI em preços constantes deveria ser 50, got {rsi_lateral}"
@@ -49,12 +49,12 @@ def test_rsi_sobrevendido():
 
 def test_rsi_limites():
     """Test que RSI está sempre nos limites 0-100."""
-    # Caso extremo: apenas ganhos
+    # Caso extremo: apenas ganhos (preços monotonamente crescentes)
     precos_apenas_ganhos = list(range(20))  # 0, 1, 2, ..., 19
     rsi_valor = rsi(precos_apenas_ganhos, period=14)
     assert 0 <= rsi_valor <= 100, f"RSI deveria estar em [0, 100], got {rsi_valor}"
 
-    # Caso extremo: apenas perdas
+    # Caso extremo: apenas perdas (preços monotonamente decrescentes)
     precos_apenas_perdas = list(range(19, -1, -1))  # 19, 18, ..., 0
     rsi_valor = rsi(precos_apenas_perdas, period=14)
     assert 0 <= rsi_valor <= 100, f"RSI deveria estar em [0, 100], got {rsi_valor}"
@@ -62,18 +62,23 @@ def test_rsi_limites():
 
 def test_signal_from_rsi():
     """Test função de sinal a partir de RSI."""
-    # Sobrecompra
+    # Sobrecompra: RSI >= 70
     assert signal_from_rsi(80) == "SELL"
     assert signal_from_rsi(75) == "SELL"
+    assert signal_from_rsi(71) == "SELL"
+    assert signal_from_rsi(70) == "SELL"  # borderline, >= 70
 
-    # Sobrevendido
+    # Sobrevendido: RSI <= 30
     assert signal_from_rsi(25) == "BUY"
-    assert signal_from_rsi(35) == "BUY"  # 35 < 70 but still traditionally "buy" region... hmm
+    assert signal_from_rsi(30) == "BUY"  # borderline, <= 30
+    assert signal_from_rsi(10) == "BUY"
 
-    # Neutro
+    # Neutro: 30 < RSI < 70
     assert signal_from_rsi(50) == "HOLD"
     assert signal_from_rsi(55) == "HOLD"
+    assert signal_from_rsi(31) == "HOLD"  # inside neutral range
+    assert signal_from_rsi(69) == "HOLD"  # inside neutral range
 
-    # Limites
+    # Limites absolutos
     assert signal_from_rsi(100) == "SELL"
     assert signal_from_rsi(0) == "BUY"

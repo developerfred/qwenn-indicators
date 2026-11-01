@@ -16,19 +16,19 @@ Nat = int  # Natural number for counting down
 
 def rsi(precos: List[U32], period: int = 14) -> U32:
     """
-    Calculate Relative Strength Index (RSI) exactamente.
+    Calculate Relative Strength Index (RSI) exactly.
 
-    RSI medida: 0 a 100.
-    - Acima de 70: sobrecompra (potencial venda)
-    - Abaixo de 30: sobrevendido (potencial compra)
-    - 50: ponto neutro
+    RSI range: 0 to 100.
+    - Above 70: overbought (potential sell)
+    - Below 30: oversold (potential buy)
+    - 50: neutral point
 
     Args:
         precos: Lista de preços históricos (U32)
-        period: Período de RSI padrão é 14
+        period: RSI period, default 14
 
     Returns:
-        U32: Valor RSI (0-100), arredondado para inteiro
+        U32: RSI value (0-100), rounded to integer
 
     RSI Formula (exato, sem erros de ponto flutuante):
     1. Calcular ganhos e perdas entre preços consecutivos
@@ -53,14 +53,18 @@ def rsi(precos: List[U32], period: int = 14) -> U32:
             ganhos.append(0)
             perdas.append(-diff)  # valor absoluto da perda
 
+    # Se não há variação de preços (todos os diffs são zero)
+    if not any(ganhos) and not any(perdas):
+        return 50  # Preços constantes: neutro
+
     # Etapa 2: Médias suavizadas (SMMA - Wilder's smoothing)
-    # Primeira média simples, depois SMMA = anterior * (periodo-1) + atual / periodo
+    # Primeira média simples, depois SMMA = (anterior * (period-1) + atual) / periodo
     if len(ganhos) >= period:
         ganho_medio_inicial: U32 = sum(ganhos[:period]) // period
         perda_medio_inicial: U32 = sum(perdas[:period]) // period
     else:
-        ganho_medio_inicial = 0
-        perda_medio_inicial = 0
+        ganho_medio_inicial = sum(ganhos) // len(ganhos) if ganhos else 0
+        perda_medio_inicial = sum(perdas) // len(perdas) if perdas else 0
 
     # SMMA subsequente
     ganho_medio: U32 = ganho_medio_inicial
@@ -73,7 +77,7 @@ def rsi(precos: List[U32], period: int = 14) -> U32:
 
     # Etapa 3: Calcular RS
     if perda_medio == 0:
-        # Ganhos constantes - RSI tende a 100
+        # Apenas ganhos (preços apenas subindo) - RSI tende a 100
         return 100
 
     rs: float = ganho_medio / perda_medio
@@ -102,10 +106,10 @@ def signal_from_rsi(rsi_valor: U32) -> str:
     Returns:
         str: Sinal - "BUY", "SELL" ou "HOLD"
     """
-    if rsi_valor > 70:
-        return "SELL"  # Sobrecompra
-    elif rsi_valor < 30:
-        return "BUY"   # Sobrevendido
+    if rsi_valor >= 70:
+        return "SELL"  # Sobrecompra (ou igual ao limite)
+    elif rsi_valor <= 30:
+        return "BUY"   # Sobrevendido (ou igual ao limite)
     else:
         return "HOLD"  # Neutro
 
@@ -135,9 +139,9 @@ def main() -> None:
     print(f"Sinal: {sinal}")
 
     # Interpretação
-    if rsi_valor > 70:
+    if rsi_valor >= 70:
         print("⚠️  Sobrecompra: considerar tomar lucro ou venda")
-    elif rsi_valor < 30:
+    elif rsi_valor <= 30:
         print("🟢  Sobrevendido: considerar entrada de compra")
     else:
         print("⚪  Neutro: mercado em faixa lateral")

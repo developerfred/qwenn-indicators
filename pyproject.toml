@@ -23,6 +23,7 @@ classifiers = [
 ]
 
 [project.scripts]
-qwenn-indicators = "src.indicators:main"
+qwenn-indicators = "qwenn_indicators.indicators:main"
 
-[tool.setuptools.packages.find = {include = ["src*"]}
+[tool.setuptools.packages.find]
+include = ["qwenn_indicators"]
